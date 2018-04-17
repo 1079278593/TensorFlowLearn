@@ -62,6 +62,8 @@ train_step = tf.train.GradientDescentOptimizer(0.01).minimize(cross_entropy)
 init = tf.global_variables_initializer()
 
 #现在我们可以在一个Session里面启动我们的模型，并且初始化变量
+#变量需要通过seesion初始化后，才能在session中使用
+#在初次调用时，init操作只包含了变量初始化程序tf.group。图表的其他部分不会在这里，而是在下面的训练循环运行。
 sess = tf.Session()
 sess.run(init)
 

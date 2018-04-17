@@ -10,9 +10,6 @@ import tensorflow as tf
 import tensorflow.examples.tutorials.mnist.input_data as input_data 
 mnist = input_data.read_data_sets("/Users/ming/Documents/AI/Data/04-mnist/mnist", one_hot=True)
 
-x = tf.placeholder("float", [None, 784])
-#W = tf.Variable(tf.zeros([784,10]))
-#b = tf.Variable(tf.zeros([10]))
 
 
 """
@@ -47,7 +44,14 @@ def max_pool_2x2(x):
     return tf.nn.max_pool(x, ksize=[1, 2, 2, 1],
                           strides=[1, 2, 2, 1], padding='SAME')
    
-    
+
+#输入原始的数据占位
+x = tf.placeholder("float", [None, 784])
+#为了计算交叉熵，我们首先需要添加一个新的占位符用于：输入正确值
+y_ = tf.placeholder("float", [None, 10])
+
+
+
 #第一层卷积
 """
 现在我们可以开始实现第一层了。它由一个卷积接一个max pooling完成。
@@ -71,6 +75,7 @@ h_conv1 = tf.nn.relu(conv2d(x_image, W_conv1) + b_conv1)
 h_pool1 = max_pool_2x2(h_conv1)
 
 
+
 #第二层卷积
 "为了构建一个更深的网络，我们会把几个类似的层堆叠起来。第二层中，每个5x5的patch会得到64个特征。"
 W_conv2 = weight_variable([5, 5, 32, 64])
@@ -79,4 +84,76 @@ b_conv2 = bias_variable([64])
 h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
 h_pool2 = max_pool_2x2(h_conv2)
 
-#经过两次pooling后，28*28 -> 14*14 -> 7*7
+
+
+#全连接层
+"""
+经过两次pooling后，28*28 -> 14*14 -> 7*7 
+图片尺寸减小到7x7，我们加入一个有1024个神经元的全连接层，用于处理整个图片。
+我们把池化层输出的张量reshape成一些向量，乘上权重矩阵，加上偏置，然后对其使用ReLU。
+"""
+W_fc1 = weight_variable([7*7*64, 1024])
+b_fc1 = bias_variable([1024])
+
+h_pool2_flat = tf.reshape(h_pool2, [-1, 7*7*64])
+h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
+
+
+#Dropout:防止过拟合
+"""
+为了减少过拟合，我们在输出层之前加入dropout。
+我们用一个placeholder来代表一个神经元的输出在dropout中保持不变的概率。
+这样我们可以在训练过程中启用dropout，在测试过程中关闭dropout。 
+TensorFlow的tf.nn.dropout操作除了可以屏蔽神经元的输出外，还会自动处理神经元输出值的scale。
+所以用dropout的时候可以不用考虑scale。
+"""
+keep_prob = tf.placeholder("float")
+h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
+
+
+#输出层:添加softmax层
+W_fc2 = weight_variable([1024, 10])
+b_fc2 = bias_variable([10])
+
+y_conv = tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
+
+
+
+
+
+"""
+--------------------------------------------------------------------------
+--------------------->训练和评估模型<----------------------
+--------------------------------------------------------------------------
+
+
+为了进行训练和评估，我们使用与之前简单的单层SoftMax神经网络模型几乎相同的一套代码，
+只是我们会用更加复杂的ADAM优化器来ne做梯度最速下降，在feed_dict中加入额外的参数keep_prob来控制dropout比例。
+然后每100次迭代输出一次日志。
+"""
+
+cross_entropy = -tf.reduce_sum(y_*tf.log(y_conv))
+train_step = tf.train.AdamOptimizer(1e-4).minimize(cross_entropy)
+correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1))
+accuracy = tf.reduce_mean(tf.cast(correct_prediction, "float"))
+
+
+#在运行计算之前，我们需要添加一个操作来初始化我们创建的变量。
+init = tf.global_variables_initializer()
+#现在我们可以在一个Session里面启动我们的模型，并且初始化变量
+sess = tf.Session()
+sess.run(init)
+
+
+
+for i in range(200):
+    batch = mnist.train.next_batch(50)
+    
+    if i%100 == 0:
+        train_accuracy = accuracy.eval(session=sess, feed_dict={
+                x:batch[0], y_: batch[1], keep_prob: 1.0})
+        print("step %d, training accuracy %g"%(i, train_accuracy))
+    train_step.run(session=sess, feed_dict={x: batch[0], y_: batch[1], keep_prob: 0.5})    
+
+print("test accuracy %g"%accuracy.eval(session=sess, feed_dict={
+        x: mnist.test.images, y_: mnist.test.labels, keep_prob: 1.0}))
