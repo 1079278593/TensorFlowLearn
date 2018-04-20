@@ -14,7 +14,7 @@ x = tf.placeholder("float", [None, 784])
 W = tf.Variable(tf.zeros([784,10]))
 b = tf.Variable(tf.zeros([10]))
 
-#定义了模型
+#定义模型
 y = tf.nn.softmax(tf.matmul(x,W) + b)
 
 """接下来要评估模型：我们通常定义指标来表示一个模型是坏的，这个指标称为成本（cost）或损失（loss），
@@ -22,7 +22,7 @@ y = tf.nn.softmax(tf.matmul(x,W) + b)
 一个非常常见的，非常漂亮的成本函数是“交叉熵”（cross-entropy）。
 交叉熵产生于信息论里面的信息压缩编码技术，但是它后来演变成为从博弈论到机器学习等其他领域里的重要技术手段。
 
-
+加入一个额外的偏置量（bias），因为输入往往会带有一些无关的干扰量
 
 ------------------------------------------------------------------------------------
 ------->y 是我们预测的概率分布, y' 是实际的分布（我们输入的one-hot vector)。<--------
@@ -67,12 +67,22 @@ init = tf.global_variables_initializer()
 sess = tf.Session()
 sess.run(init)
 
-#开始训练模型，这里我们让模型循环训练1000次！
+#开始训练模型，模型循环训练1000次！
 for i in range(1000):
     batch_xs, batch_ys = mnist.train.next_batch(100)
     sess.run(train_step, feed_dict={x: batch_xs,y_:batch_ys})
     
 #评估我们的模型
+"""
+tf.argmax 是一个非常有用的函数，它能给出某个tensor对象在某一维上的其数据最大值所在的索引值。
+由于标签向量是由0,1组成，因此最大值1所在的索引位置就是类别标签，比如tf.argmax(y,1)返回的
+是模型对于任一输入x预测到的标签值，而 tf.argmax(y_,1) 代表正确的标签，我们可以
+用 tf.equal 来检测我们的预测是否真实标签匹配(索引位置一样表示匹配)。
+
+这行代码会给我们一组布尔值。为了确定正确预测项的比例，我们可以把布尔值转换成浮点数，然后取平均值。
+例如，[True, False, True, True] 经过cast的转换会变成 [1,0,1,1] ，取平均值后得到 0.75
+
+"""
 correct_predicton = tf.equal(tf.argmax(y,1), tf.argmax(y_,1))
 
 accuracy = tf.reduce_mean(tf.cast(correct_predicton, "float"))

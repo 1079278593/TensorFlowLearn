@@ -36,7 +36,7 @@ TensorFlow在卷积和池化上有很强的灵活性。
 """
 
 #卷积和池化
-#[batchSize,横滑步长,竖滑步长,channelSize]      SAME：自动补充
+#[batch, in_height, in_width, in_channels] 即[batch尺寸,横滑步长,竖滑步长,通道数]      SAME：自动补充
 def conv2d(x, W):
     return tf.nn.conv2d(input=x, filter=W, strides=[1, 1, 1, 1], padding='SAME')
 
@@ -58,6 +58,8 @@ y_ = tf.placeholder("float", [None, 10])
 卷积在每个5x5的patch中算出32个特征。卷积的权重张量形状是[5, 5, 1, 32]，
 前两个维度是patch的大小，接着是输入的通道数目，最后是输出的通道数目。 
 而对于每一个输出通道都有一个对应的偏置量。
+前两个参数是filter大小、第三个参数是原始图像通道数、第四个参数是‘得到的特征图’数量
+
 """
 
 W_conv1 = weight_variable([5, 5, 1, 32])
@@ -106,6 +108,7 @@ h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 这样我们可以在训练过程中启用dropout，在测试过程中关闭dropout。 
 TensorFlow的tf.nn.dropout操作除了可以屏蔽神经元的输出外，还会自动处理神经元输出值的scale。
 所以用dropout的时候可以不用考虑scale。
+全连接时，屏蔽一些，不用全部参与，keep_prob参与比例，1代表全部参与
 """
 keep_prob = tf.placeholder("float")
 h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
