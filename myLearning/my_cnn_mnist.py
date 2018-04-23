@@ -18,6 +18,7 @@ mnist = input_data.read_data_sets("/Users/ming/Documents/AI/Data/04-mnist/mnist"
 由于我们使用的是ReLU神经元，因此比较好的做法是用一个较小的正数来初始化偏置项，
 以避免神经元节点输出恒为0的问题（dead neurons）。为了不在建立模型的时候反复做初始化操作，
 我们定义两个函数用于初始化。
+truncated_normal：正态分布随机值。truncated：截断
 """
 
 def weight_variable(shape):
@@ -79,7 +80,10 @@ h_pool1 = max_pool_2x2(h_conv1)
 
 
 #第二层卷积
-"为了构建一个更深的网络，我们会把几个类似的层堆叠起来。第二层中，每个5x5的patch会得到64个特征。"
+"""
+为了构建一个更深的网络，我们会把几个类似的层堆叠起来。第二层中，每个5x5的patch会得到64个特征。
+第三个参数：32，是第一层的输出大小
+"""
 W_conv2 = weight_variable([5, 5, 32, 64])
 b_conv2 = bias_variable([64])
 
@@ -87,7 +91,7 @@ h_conv2 = tf.nn.relu(conv2d(h_pool1, W_conv2) + b_conv2)
 h_pool2 = max_pool_2x2(h_conv2)
 
 
-
+#前面的卷积已经将特征提取出来了，但是还没有利用上，下面就是使用
 #全连接层
 """
 经过两次pooling后，28*28 -> 14*14 -> 7*7 
@@ -108,13 +112,13 @@ h_fc1 = tf.nn.relu(tf.matmul(h_pool2_flat, W_fc1) + b_fc1)
 这样我们可以在训练过程中启用dropout，在测试过程中关闭dropout。 
 TensorFlow的tf.nn.dropout操作除了可以屏蔽神经元的输出外，还会自动处理神经元输出值的scale。
 所以用dropout的时候可以不用考虑scale。
-全连接时，屏蔽一些，不用全部参与，keep_prob参与比例，1代表全部参与
+全连接时，屏蔽一些，不用全部参与，keep_prob参与比例，1代表全部参与。使得一些神经元不参与训练。
 """
 keep_prob = tf.placeholder("float")
 h_fc1_drop = tf.nn.dropout(h_fc1, keep_prob)
 
 
-#输出层:添加softmax层
+#输出层(第二个全连接层):添加softmax层
 W_fc2 = weight_variable([1024, 10])
 b_fc2 = bias_variable([10])
 
@@ -133,6 +137,8 @@ y_conv = tf.nn.softmax(tf.matmul(h_fc1_drop, W_fc2) + b_fc2)
 为了进行训练和评估，我们使用与之前简单的单层SoftMax神经网络模型几乎相同的一套代码，
 只是我们会用更加复杂的ADAM优化器来ne做梯度最速下降，在feed_dict中加入额外的参数keep_prob来控制dropout比例。
 然后每100次迭代输出一次日志。
+唐老师demo:
+cross_entropy = -tf.reduce_sum(tf.nn.softmax_cross_entropy_with_logits(labels=y,logits=y))
 """
 
 cross_entropy = -tf.reduce_sum(y_*tf.log(y_conv))
