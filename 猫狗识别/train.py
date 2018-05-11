@@ -13,7 +13,7 @@ from tensorflow import set_random_seed
 set_random_seed(20)
 
 
-batch_size = 32
+batch_size = 32*1
 
 #Prepare input data
 classes = ['dogs','cats']
@@ -57,7 +57,7 @@ num_filters_conv3 = 64
 fc_layer_size = 1024
 
 def create_weights(shape):
-    return tf.Variable(tf.truncated_normal(shape, stddev=0.05))
+    return tf.Variable(tf.truncated_normal(shape, stddev=0.001))
 
 def create_biases(size):
     return tf.Variable(tf.constant(0.05, shape=[size]))
@@ -208,4 +208,4 @@ def train(num_iteration):
 
     total_iterations += num_iteration
 
-train(num_iteration=8000)
+train(num_iteration=80000)
